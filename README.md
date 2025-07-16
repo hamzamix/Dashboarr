@@ -1,4 +1,3 @@
-
 # Windows Remote Control Dashboard
 
 This project is a full-stack application to remotely monitor and manage multiple Windows PCs from a central web dashboard.
@@ -69,3 +68,9 @@ For each Windows computer you want to control:
 2.  Click **"Add Computer"**.
 3.  Enter a friendly name and the **exact local IP Address** of the Windows PC where the agent is running.
 4.  Once added, the server will recognize the agent's next heartbeat, and the computer's status will turn "Online" in the dashboard. You can now manage it.
+
+---
+
+## License
+
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.

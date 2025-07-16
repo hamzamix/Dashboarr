@@ -1,0 +1,95 @@
+Overview of the Workflow
+The process follows this order of dependencies:
+Build Frontend -> Creates a dist folder with static files (index.html, etc.).
+Run Backend Server -> The server needs the dist folder to serve the user interface.
+Run Agent -> The agent needs the server to be running so it can connect to it.
+Step 1: Build the Frontend (Create the dist folder)
+The first step is to compile your React (.tsx) code into plain HTML, JavaScript, and CSS that a browser can understand. This process is called "building".
+Prerequisites:
+You need Node.js installed on your computer. This will also give you the npm command.
+Instructions:
+Open your terminal or command prompt.
+Navigate to the root directory of your project (the folder that contains index.html, App.tsx, and the backend and agent folders).
+Generated bash
+# Example:
+cd C:\Users\YourUser\Projects\windows-remote-control
+Use code with caution.
+Bash
+Install the necessary libraries (React, Lucide, etc.) by running:
+Generated bash
+npm install
+Use code with caution.
+Bash
+Now, run the build command. This is the command that creates the dist folder. Based on standard React project setups, the command is likely:
+Generated bash
+npm run build
+Use code with caution.
+Bash
+Note: Since you don't have a package.json file, you might need to install a build tool like Vite. If npm run build fails, do this:
+Generated bash
+npm install vite
+./node_modules/.bin/vite build
+Use code with caution.
+Bash
+Verification:
+After this command finishes, you should see a new dist folder in your project's root directory. Inside it will be index.html and an assets folder. This is critical for the next step.
+Step 2: Run the Backend Server with Docker
+Now you'll start the Flask server. The docker-compose.yml file makes this very easy. It will build the container using the Dockerfile, which automatically copies your backend code and the dist folder you just created.
+Prerequisites:
+You need Docker Desktop installed and running on your computer.
+Instructions:
+Make sure you are still in the root directory of your project in your terminal.
+Run the following command:
+Generated bash
+docker-compose up --build -d
+Use code with caution.
+Bash
+up: Starts the container(s) defined in the docker-compose.yml file.
+--build: Tells Docker to build the image from the Dockerfile before starting. You must do this the first time.
+-d: Detached mode. This runs the server in the background so you can continue to use your terminal.
+Verification:
+Check that the container is running: docker ps. You should see a container for your project.
+View the server logs to ensure it started correctly: docker-compose logs -f. You should see lines from "Gunicorn" indicating the server is listening on port 5000.
+Open a web browser and go to http://localhost:5000. You should see your "Computers Dashboard" interface with the message "No computers configured."
+Step 3: Set Up and Run the Agent on Your Windows PC
+This is the final piece. The agent script will run on the Windows machine you want to monitor and will talk to your server.
+Prerequisites:
+Python 3 installed on the Windows PC.
+Instructions:
+Copy the agent folder to the Windows machine (e.g., place it in C:\rc-agent). This folder contains agent.py and requirements.txt.
+CRITICAL - Configure the Server IP:
+Open agent/agent.py in a text editor on the Windows PC.
+Find this line: SERVER_URL = "http://127.0.0.1:5000"
+You must change 127.0.0.1 to the local network IP address of the computer running Docker.
+How to find the server's IP: On the machine where Docker is running, open a command prompt and type ipconfig (if it's Windows) or ifconfig/ip a (if it's Mac/Linux). Look for the "IPv4 Address" (e.g., 192.168.1.105).
+Your edited line should look like this:
+Generated python
+# In agent.py
+SERVER_URL = "http://192.168.1.105:5000" # Use YOUR server's IP here!
+Use code with caution.
+Python
+Install Agent Dependencies:
+Open a Command Prompt or PowerShell on the Windows PC.
+Navigate to the agent folder:
+Generated powershell
+cd C:\rc-agent
+Use code with caution.
+Powershell
+Install requests and psutil:
+Generated powershell
+pip install -r requirements.txt
+Use code with caution.
+Powershell
+Run the Agent:
+In the same terminal, run the script:
+Generated powershell
+python agent.py
+Use code with caution.
+Powershell
+You should see the message "Agent started." The script will now be running and sending data to your server every 5 seconds.
+Step 4: Use the Dashboard
+Go back to your web browser at http://localhost:5000.
+Click "Add Computer".
+Enter a friendly name (e.g., "Gaming PC") and the exact same IP address of the Windows PC that you used in the agent's SERVER_URL configuration.
+After you add it, wait about 5-10 seconds. The server will receive its next heartbeat from the agent, and the computer's status indicator will turn green ("Online"), and the CPU/Memory stats will appear.
+Congratulations! Your entire remote control system is now up and running.

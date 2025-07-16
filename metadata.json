@@ -1,0 +1,6 @@
+{
+  "name": "Windows Remote Control Dashboard",
+  "description": "A centralized, full-stack web application to remotely monitor and manage multiple Windows PCs. The server runs in Docker and communicates with an agent on each PC.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

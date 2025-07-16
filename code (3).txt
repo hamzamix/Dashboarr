@@ -1,0 +1,117 @@
+====================================================================
+  COMPLETE GUIDE: DEPLOYING THE REMOTE CONTROL APP WITH GITHUB & PORTAINER
+====================================================================
+
+This guide will walk you through deploying the entire application. The project is now configured with a multi-stage Dockerfile, which means you do NOT need to build the `dist` folder on your local PC. The server will build everything it needs automatically from your GitHub repository.
+
+---
+### PART 1: PREPARE YOUR GITHUB REPOSITORY
+---
+
+Before deploying, ensure your GitHub repository is up to date with the latest project files.
+
+1.  **Commit All Changes:** Make sure all the new and updated files (`package.json`, `vite.config.ts`, `Dockerfile`, etc.) have been committed and pushed to your GitHub repository.
+
+2.  **Check `.gitignore`:** Ensure your `.gitignore` file contains lines to ignore `node_modules/` and `dist/`. This is very important to keep your repository clean.
+
+With your code on GitHub, you are ready to deploy.
+
+---
+### PART 2: DEPLOY THE SERVER STACK WITH PORTAINER
+---
+
+This process will pull your code from GitHub and run the automated build on your Linux server.
+
+1.  **Log in to Portainer:** Open your Portainer interface in a web browser.
+
+2.  **Navigate to Stacks:**
+    *   In the left-hand menu, click on **Stacks**.
+
+3.  **Add a New Stack:**
+    *   Click the **+ Add stack** button.
+
+4.  **Configure the Stack:**
+    *   **Name:** Give your stack a descriptive name (e.g., `windows-remote-control`).
+    *   **Build method:** Select **Repository**.
+
+5.  **Configure the Repository:**
+    *   **Repository URL:** Paste the URL of your GitHub repository (e.g., `https://github.com/your-username/your-repo.git`).
+    *   **Repository reference:** Leave this as `refs/heads/main` (or whatever your default branch is called).
+    *   **Compose path:** Leave this as `docker-compose.yml`.
+    *   **Authentication:** If your repository is private, you will need to enable authentication and provide a Git credential (an access token is recommended). If it's public, you can skip this.
+
+6.  **Provide the docker-compose.yml Content:**
+    *   In the **Web editor** section, you need to provide the `docker-compose.yml` content. Since your `docker-compose.yml` is already in your Git repo, Portainer will use it by default. You can leave the web editor empty or paste the content of your `docker-compose.yml` file for clarity. It should look like this:
+
+    ```yaml
+    version: '3.8'
+    services:
+      backend:
+        build: .
+        ports:
+          - "5000:5000"
+        volumes:
+          - ./backend/data:/app/backend/data
+        restart: unless-stopped
+    ```
+
+7.  **Deploy the Stack:**
+    *   Scroll down and click the **Deploy the stack** button.
+
+**What Happens Now?**
+Portainer will start a process that:
+1.  Pulls the latest code from your GitHub repository.
+2.  Sees the `build: .` line in your `docker-compose.yml` and looks for the `Dockerfile`.
+3.  Executes the multi-stage `Dockerfile`:
+    *   It builds the React frontend, creating the `dist` folder *inside a temporary container*.
+    *   It then builds the final Python container, copying the `dist` folder and the `backend` code into it.
+4.  Starts the final container, which now serves your fully-built application on port 5000.
+
+**Verification:**
+*   You can view the build and container logs in Portainer to monitor progress and check for errors.
+*   Once complete, your dashboard will be live at `http://<your-linux-server-ip>:5000`.
+
+---
+### PART 3: SET UP AND RUN THE AGENT ON YOUR WINDOWS PC
+---
+
+This is the final step, connecting your Windows machine to the server.
+
+1.  **Copy the `agent` Folder:**
+    *   Get a copy of the `agent` folder (containing `agent.py` and `requirements.txt`) and place it on your Windows machine (e.g., in `C:\rc-agent`).
+
+2.  **CRITICAL - Configure the Server IP:**
+    *   Open `agent.py` (e.g., `C:\rc-agent\agent.py`) in a text editor like Notepad or VS Code.
+    *   Find this line: `SERVER_URL = "http://127.0.0.1:5000"`
+    *   Change `127.0.0.1` to the **IP address of your Linux server** where Docker is running.
+    *   The edited line must look like this (use YOUR server's IP):
+      ```python
+      SERVER_URL = "http://192.168.1.105:5000"
+      ```
+
+3.  **Install Agent Dependencies:**
+    *   Open a Command Prompt or PowerShell on the Windows PC.
+    *   Navigate to the folder where you placed the agent:
+      ```powershell
+      cd C:\rc-agent
+      ```
+    *   Run the following command to install the required Python libraries:
+      ```powershell
+      pip install -r requirements.txt
+      ```
+
+4.  **Run the Agent:**
+    *   In the same terminal, start the agent:
+      ```powershell
+      python agent.py
+      ```
+    *   You should see the message "Agent started." The agent is now sending data to your server. For permanent use, you should configure this script to run automatically on startup using Windows Task Scheduler.
+
+---
+### PART 4: USE THE DASHBOARD
+---
+
+1.  Go to the web dashboard at `http://<your-linux-server-ip>:5000`.
+2.  Click **"Add Computer"**.
+3.  Enter a name for your computer and its **exact IP Address**.
+4.  Within a few seconds, the status should change to "Online", and you can start managing it.

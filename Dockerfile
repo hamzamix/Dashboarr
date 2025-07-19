@@ -1,42 +1,38 @@
-# --- Stage 1: Build Frontend ---
-# This stage uses Node.js to build the React application into static files.
-FROM node:20-alpine AS builder
+# Stage 1: Build the React application
+FROM node:20-alpine AS build
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and install dependencies first to leverage Docker cache
 COPY package.json ./
-RUN npm install
+# Use 'npm ci' for faster, more reliable builds in CI/CD environments
+RUN npm ci
 
-# Copy the rest of the frontend source code
 COPY . .
 
-# Run the build script defined in package.json
-# This will create a 'dist' folder with the compiled frontend
 RUN npm run build
 
-# --- Stage 2: Final Production Image ---
-# This stage uses Python to create a lean final image. It will copy the
-# built frontend from the 'builder' stage.
-FROM python:3.9-slim
+# Stage 2: Production environment
+FROM node:20-alpine
 
-# Set the working directory in the final container
 WORKDIR /app
 
-# Copy Python requirements file and install dependencies
-COPY backend/requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+# As root, create the data directory for the volume and set ownership to the 'node' user
+RUN mkdir -p /data && chown node:node /data
 
-# Copy the backend source code
-COPY backend/ /app/backend/
+# Copy built assets, server files, and package manifests from the build stage
+COPY --from=build /app/dist ./dist
+COPY package.json ./
+COPY package-lock.json ./
+COPY server.js ./
 
-# ** The Magic Step **
-# Copy the built frontend from the 'builder' stage into our final image
-COPY --from=builder /app/dist /app/dist/
+# Install only production dependencies for a smaller image
+RUN npm install --omit=dev
 
-# Expose the port the app runs on
-EXPOSE 5000
+# Switch to the non-root 'node' user for enhanced security
+USER node
 
-# Command to run the Flask application using Gunicorn (a production server)
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "backend.app:app"]
+# Expose the port the Node.js server will run on inside the container
+EXPOSE 3000
+
+# The command to start the server when the container launches
+CMD ["node", "server.js"]
